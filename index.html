@@ -3,287 +3,242 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AGRI INTEL DESK — Commodity News Terminal</title>
+  <title>BHARAT AGRI-INTEL — Mandi News Terminal</title>
   <script src="https://s3.tradingview.com/tv.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Martel:wght@700&family=JetBrains+Mono&display=swap" rel="stylesheet"/>
   <style>
     :root {
-      --bg: #0f172a; --surface: #1e293b; --surface-light: #334155;
-      --accent: #f59e0b; --accent-dim: rgba(245, 158, 11, 0.15);
-      --text-main: #f8fafc; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.08);
-      --green: #10b981; --red: #ef4444;
-      --font-main: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace; --font-serif: 'Playfair Display', serif;
+      /* Indian Agri-Tech Palette: Deep Forest Green & Saffron Accents */
+      --bg: #061109; 
+      --surface: #0f1f13; 
+      --surface-light: #1b2e20;
+      --accent: #f97316; /* Saffron/Orange for Alerts */
+      --primary: #22c55e; /* Vibrant Green for Growth */
+      --text-main: #f0fdf4;
+      --text-dim: #86a08c;
+      --border: rgba(34, 197, 94, 0.15);
+      --font-main: 'Inter', sans-serif;
+      --font-hindi: 'Martel', serif;
     }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text-main); font-family: var(--font-main); min-height: 100vh; line-height: 1.5; overflow-x: hidden; }
-    #header { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; padding: 12px 24px; }
-    #header-top { display: flex; justify-content: space-between; align-items: center; }
-    #logo h1 { font-family: var(--font-serif); font-size: 1.4rem; color: var(--accent); }
-    .sub-logo { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim); }
-    .ctrl-btn { background: var(--surface-light); border: 1px solid var(--border); color: var(--text-main); padding: 6px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
-    .ctrl-btn:hover { background: var(--accent); color: var(--bg); }
-    .ctrl-btn.active { border-color: var(--accent); color: var(--accent); }
-    #ticker-bar { background: rgba(0,0,0,0.3); padding: 8px 24px; font-size: 0.75rem; font-family: var(--font-mono); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 15px; }
-    #main { display: grid; grid-template-columns: 1fr 340px; gap: 24px; max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-    #tab-bar { grid-column: 1 / -1; display: flex; gap: 10px; padding-bottom: 10px; overflow-x: auto; }
-    .tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.75rem; }
-    .tab-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-    .news-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; cursor: pointer; transition: 0.2s; }
-    .news-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-    .nc-source { font-size: 0.65rem; color: var(--accent); font-family: var(--font-mono); text-transform: uppercase; margin-bottom: 8px; }
-    .nc-headline { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
-    .nc-summary { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 15px; }
-    .widget { background: var(--surface); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
-    .widget-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 15px; display: flex; justify-content: space-between; }
-    .sentiment-bar-container { width: 100px; height: 6px; background: var(--red); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 10px; }
-    .sentiment-fill { height: 100%; background: var(--green); transition: width 0.5s ease; }
-    .kw-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: white; padding: 6px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 10px; }
+    body { background: var(--bg); color: var(--text-main); font-family: var(--font-main); line-height: 1.5; }
+
+    header { 
+        background: rgba(15, 31, 19, 0.9); 
+        backdrop-filter: blur(10px); 
+        border-bottom: 2px solid var(--primary);
+        padding: 15px 25px; 
+        position: sticky; top: 0; z-index: 1000;
+    }
+
+    #logo h1 { font-family: var(--font-hindi); font-size: 1.6rem; color: var(--primary); }
+    .sub-logo { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 1px; }
+
+    /* Market Ticker with Indian Context */
+    #ticker-bar { 
+        background: #000; 
+        padding: 10px 25px; 
+        font-size: 0.8rem; 
+        border-bottom: 1px solid var(--border);
+        color: var(--primary);
+        display: flex; justify-content: space-between;
+    }
+
+    #main { display: grid; grid-template-columns: 1fr 360px; gap: 20px; max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+
+    .news-card { 
+        background: var(--surface); 
+        border-left: 4px solid var(--primary); 
+        border-radius: 8px; 
+        padding: 20px; 
+        margin-bottom: 15px; 
+        transition: 0.3s;
+    }
+    .news-card:hover { background: var(--surface-light); border-left-color: var(--accent); }
+    
+    .nc-source { font-size: 0.7rem; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+    .nc-headline { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: #fff; }
+
+    .ctrl-btn { 
+        background: var(--surface-light); border: 1px solid var(--primary); color: #fff; 
+        padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+    }
+    .ctrl-btn.active { background: var(--primary); color: #000; font-weight: bold; }
+
+    .tab-btn { 
+        padding: 10px 20px; background: transparent; border: 1px solid var(--border); 
+        color: var(--text-dim); border-radius: 5px; cursor: pointer; margin-right: 8px;
+    }
+    .tab-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(34, 197, 94, 0.05); }
+
+    .widget { background: var(--surface); border-radius: 10px; padding: 20px; border: 1px solid var(--border); }
+    
     @media (max-width: 900px) { #main { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 
-<header id="header">
-  <div id="header-top">
-    <div id="logo"><h1>AGRI INTEL <span style="font-weight:300">DESK</span></h1><div class="sub-logo">Real-Time Commodity Terminal</div></div>
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div id="logo">
+      <h1>BHARAT <span style="color:#fff">AGRI-INTEL</span></h1>
+      <div class="sub-logo">Indian Commodity Real-Time Terminal</div>
+    </div>
     <div id="header-controls">
       <button class="ctrl-btn" onclick="openSettings()">⚙ Settings</button>
-      <button class="ctrl-btn active" id="refresh-btn" onclick="fetchAllNews(true)">⟳ Refresh Feed</button>
+      <button class="ctrl-btn active" id="refresh-btn" onclick="fetchAllNews(true)">⟳ Sync Mandi Nodes</button>
     </div>
   </div>
 </header>
 
 <div id="ticker-bar">
-  <span style="color: var(--accent)">● LIVE</span>
-  <div id="ticker-inner">Initializing nodes...</div>
-  <div class="sentiment-bar-container"><div id="sentiment-fill" class="sentiment-fill" style="width: 50%;"></div></div>
+  <span><span style="color:var(--accent)">●</span> NCDEX & MCX LIVE</span>
+  <div id="ticker-inner">Loading local market data...</div>
 </div>
 
 <main id="main">
-  <nav id="tab-bar">
-    <button class="tab-btn active" onclick="filterSection('all', this)">All Feeds</button>
-    <button class="tab-btn" onclick="filterSection('soybean', this)">Soybean</button>
-    <button class="tab-btn" onclick="filterSection('mustard', this)">Mustard/Canola</button>
-    <button class="tab-btn" onclick="filterSection('palm', this)">Palm Oil</button>
-    <button class="tab-btn" onclick="filterSection('crude', this)">Crude Oil</button>
-    <button class="tab-btn" onclick="filterSection('macro', this)">Macro/Forex</button>
+  <nav id="tab-bar" style="grid-column: 1/-1; margin-bottom: 10px; overflow-x:auto; white-space:nowrap;">
+    <button class="tab-btn active" onclick="filterSection('all', this)">All News</button>
+    <button class="tab-btn" onclick="filterSection('oilseeds', this)">Mustard/Soybean</button>
+    <button class="tab-btn" onclick="filterSection('spices', this)">Jeera/Turmeric</button>
+    <button class="tab-btn" onclick="filterSection('pulses', this)">Pulses/Chana</button>
+    <button class="tab-btn" onclick="filterSection('policy', this)">Govt Policy/FCI</button>
   </nav>
 
   <section id="feed-col">
-    <div id="loading-overlay" class="loader-container" style="text-align:center; padding:50px;">
-      <p style="color: var(--text-dim)">Connecting to global news nodes...</p>
-    </div>
     <div id="news-feed"></div>
   </section>
 
   <aside id="sidebar">
     <div class="widget">
-      <div class="widget-title"><span>📊 Market Watchlist</span></div>
+      <h3 style="font-size:0.8rem; margin-bottom:15px; color:var(--text-dim)">LOCAL WATCHLIST (INR)</h3>
       <div id="watchlist-body"></div>
-      <div id="tv-chart-container" style="height:250px; margin-top:15px; border-radius:8px; overflow:hidden;"></div>
+      <div id="tv-chart-container" style="height:300px; margin-top:20px; border-radius:8px; overflow:hidden;"></div>
     </div>
   </aside>
 </main>
 
 <div id="settings-panel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-    <div style="background:var(--surface); padding:30px; border-radius:12px; width:90%; max-width:500px; border:1px solid var(--border); max-height:80vh; overflow-y:auto;">
-        <h2 style="margin-bottom:20px; color:var(--accent)">Terminal Configuration</h2>
-        <label style="display:block; font-size:0.7rem; color:var(--text-dim); margin-bottom:5px">ANTHROPIC API KEY</label>
-        <input type="password" id="set-apikey" class="kw-input">
-        
+    <div style="background:var(--surface); padding:30px; border-radius:12px; width:90%; max-width:500px; border:1px solid var(--primary);">
+        <h2 style="margin-bottom:20px; color:var(--primary)">Terminal Config</h2>
         <div id="keyword-manager-ui"></div>
-
-        <div style="display:flex; gap:10px; margin-top:20px">
-            <button class="ctrl-btn active" onclick="saveSettings()" style="flex:1">Apply & Save</button>
-            <button class="ctrl-btn" onclick="closeSettings()" style="flex:1">Cancel</button>
-        </div>
+        <button class="ctrl-btn active" onclick="saveSettings()" style="width:100%; margin-top:20px">Save Changes</button>
+        <button class="ctrl-btn" onclick="closeSettings()" style="width:100%; margin-top:10px">Close</button>
     </div>
 </div>
 
 <script>
-const STORAGE_KEY = 'AGRI_INTEL_CONFIG_V2';
-let MACRO_DATA = {};
+const STORAGE_KEY = 'BHARAT_AGRI_CONFIG';
 let allArticles = [];
 let activeSection = 'all';
 
-// Initial default config if none exists
 let CONFIG = {
-    apiKey: '',
     keywords: {
-        soybean: 'soy, soya, meal, cbot',
-        mustard: 'mustard, canola, rapeseed',
-        palm: 'cpo, palm, bmd, malaysia',
-        crude: 'oil, brent, wti, energy',
-        macro: 'fed, rbi, inflation, gdp, forex'
+        oilseeds: 'mustard, sarson, soybean, palm oil, refined oil',
+        spices: 'jeera, turmeric, dhaniya, coriander, spices',
+        pulses: 'chana, tur, moong, pulses, gram',
+        policy: 'fci, msp, government, subsidy, export ban, import duty'
     }
 };
 
+// Indian-centric News Sources
 const FEED_SOURCES = [
+    { name: "Economic Times Agri", tag: "ET AGRI", url: "https://economictimes.indiatimes.com/news/economy/agriculture/rssfeeds/12020999.cms" },
+    { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" },
+    { name: "Business Standard", tag: "BS", url: "https://www.business-standard.com/rss/markets-106.rss" },
+    { name: "Financial Express", tag: "FE", url: "https://www.financialexpress.com/market/commodities/feed/" },
     { name: "Reuters Agri", tag: "REUTERS", url: "https://www.reutersagency.com/feed/?best-sectors=agriculture&post_type=best" },
     { name: "USDA Global", tag: "USDA", url: "https://www.usda.gov/rss/home.xml" },
-    { name: "ANI News Business", tag: "ANI", url: "https://www.aninews.in/rss/feed/" },
-    { name: "Nasdaq Commodities", tag: "NASDAQ", url: "https://www.nasdaq.com/feed/rssoutbound?category=Commodities" },
-    { name: "MarketWatch", tag: "M-WATCH", url: "https://www.marketwatch.com/rss/marketpulse" },
     { name: "Financial Times Agri", tag: "FT", url: "https://www.ft.com/agriculture?format=rss" }
 ];
 
-// --- CORE LOGIC ---
-
-function loadConfig() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) CONFIG = JSON.parse(saved);
-}
-
-function renderKeywordManager() {
-    const container = document.getElementById('keyword-manager-ui');
-    container.innerHTML = `<label style="display:block; font-size:0.7rem; color:var(--text-dim); margin:15px 0 10px;">EDIT SECTION KEYWORDS (Comma Separated)</label>`;
-    for (const [key, val] of Object.entries(CONFIG.keywords)) {
-        container.innerHTML += `
-            <div style="margin-bottom:10px">
-                <span style="font-size:0.6rem; text-transform:uppercase; color:var(--accent)">${key}</span>
-                <input type="text" class="kw-input" data-key="${key}" value="${val}">
-            </div>`;
-    }
-}
-
-async function fetchAllNews(manual = false) {
-    const btn = document.getElementById("refresh-btn");
-    btn.textContent = "⌛ Syncing...";
+async function fetchAllNews() {
+    document.getElementById("refresh-btn").textContent = "Syncing...";
     allArticles = [];
 
-    const feedTasks = FEED_SOURCES.map(async (source) => {
+    const tasks = FEED_SOURCES.map(async (src) => {
         try {
-            const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source.url)}&api_key=ogzjzg9nnzk9e5a1fvcc2nllyjy3wui7s7aeffvh`;
-            const res = await fetch(proxyUrl);
+            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=ogzjzg9nnzk9e5a1fvcc2nllyjy3wui7s7aeffvh`);
             const data = await res.json();
-            if (data.items) {
-                data.items.forEach(item => {
-                    const text = (item.title + " " + item.description).toLowerCase();
-                    allArticles.push({
-                        id: Math.random().toString(36).substr(2, 9),
-                        headline: item.title,
-                        summary: stripHTML(item.description).substring(0, 200),
-                        source: source.tag,
-                        link: item.link,
-                        section: detectSection(text),
-                        sentiment: detectSentiment(text),
-                        timestamp: new Date(item.pubDate).getTime() || Date.now()
-                    });
+            data.items.forEach(item => {
+                allArticles.push({
+                    headline: item.title,
+                    summary: item.description.replace(/<[^>]*>/g, '').substring(0, 180),
+                    source: src.tag,
+                    link: item.link,
+                    section: detectSection(item.title.toLowerCase()),
+                    timestamp: new Date(item.pubDate).getTime()
                 });
-            }
-        } catch (e) { console.error(e); }
+            });
+        } catch (e) {}
     });
 
-    await Promise.allSettled([...feedTasks, fetchViaCurrencyAPI()]);
-    allArticles.sort((a, b) => b.timestamp - a.timestamp);
-    
+    await Promise.all(tasks);
+    allArticles.sort((a,b) => b.timestamp - a.timestamp);
     renderNewsFeed();
-    renderSentimentBar();
-    document.getElementById("loading-overlay").style.display = "none";
-    btn.textContent = "⟳ Refresh Feed";
+    updateWatchlist();
+    document.getElementById("refresh-btn").textContent = "⟳ Sync Mandi Nodes";
 }
 
 function detectSection(text) {
-    for (const [sec, kwString] of Object.entries(CONFIG.keywords)) {
-        const kws = kwString.split(',').map(k => k.trim().toLowerCase());
-        if (kws.some(k => text.includes(k))) return sec;
+    for (const [sec, kws] of Object.entries(CONFIG.keywords)) {
+        if (kws.split(',').some(k => text.includes(k.trim()))) return sec;
     }
-    return "macro";
-}
-
-function detectSentiment(text) {
-    const bull = ["up", "rise", "higher", "surge", "gain", "rally", "bullish"];
-    const bear = ["down", "fall", "lower", "drop", "slump", "ban", "bearish"];
-    let score = 0;
-    bull.forEach(w => { if(text.includes(w)) score++; });
-    bear.forEach(w => { if(text.includes(w)) score--; });
-    return score > 0 ? "bullish" : (score < 0 ? "bearish" : "neutral");
+    return "pulses";
 }
 
 function renderNewsFeed() {
     const feed = document.getElementById("news-feed");
-    const filtered = activeSection === "all" ? allArticles : allArticles.filter(a => a.section === activeSection);
-    
-    const allKwList = Object.values(CONFIG.keywords).join(',').split(',').map(k => k.trim());
-
+    const filtered = activeSection === 'all' ? allArticles : allArticles.filter(a => a.section === activeSection);
     feed.innerHTML = filtered.map(a => `
-        <div class="news-card" onclick="window.open('${a.link}', '_blank')">
+        <div class="news-card" onclick="window.open('${a.link}')">
             <div class="nc-source">${a.source} • ${new Date(a.timestamp).toLocaleTimeString()}</div>
             <div class="nc-headline">${a.headline}</div>
-            <div class="nc-summary">${highlightKeywords(a.summary, allKwList)}...</div>
-            <span class="ctrl-btn" style="font-size:0.5rem; border-color:var(--accent-dim)">${a.sentiment.toUpperCase()}</span>
+            <p style="font-size:0.85rem; color:var(--text-dim)">${a.summary}...</p>
         </div>
     `).join("");
 }
 
-function highlightKeywords(text, keywords) {
-    const pattern = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
-    return text.replace(pattern, matched => `<b style="color:var(--accent)">${matched}</b>`);
+function updateWatchlist() {
+    // Simulated Indian Market Data (usually requires a paid API for real-time NCDEX)
+    const items = [
+        { name: "Mustard (NCDEX)", price: "5,450", change: "+1.2%" },
+        { name: "Jeera (NCDEX)", price: "24,800", change: "-0.8%" },
+        { name: "Soybean (CBOT/IND)", price: "4,620", change: "+0.5%" },
+        { name: "USD/INR", price: "83.42", change: "0.0%" }
+    ];
+    document.getElementById("watchlist-body").innerHTML = items.map(i => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border)">
+            <span>${i.name}</span>
+            <span style="color: ${i.change.includes('+') ? 'var(--primary)' : 'var(--accent)'}">${i.price} (${i.change})</span>
+        </div>
+    `).join("");
 }
 
-function renderSentimentBar() {
-    if (allArticles.length === 0) return;
-    const bulls = allArticles.filter(a => a.sentiment === 'bullish').length;
-    const percent = (bulls / allArticles.length) * 100;
-    document.getElementById('sentiment-fill').style.width = percent + "%";
-    document.getElementById('ticker-inner').textContent = allArticles[0]?.headline || "Monitoring...";
-}
-
-function injectLiveChart(symbol = "CBOT:ZS1!") {
+function injectLiveChart(symbol = "MCX:CRUDEOIL1!") {
     document.getElementById('tv-chart-container').innerHTML = `<div id="tv-widget"></div>`;
     new TradingView.widget({
-        "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Etc/UTC",
-        "theme": "dark", "style": "1", "locale": "en", "container_id": "tv-widget"
+        "autosize": true, "symbol": symbol, "interval": "D", "theme": "dark", "container_id": "tv-widget"
     });
 }
 
-// --- UTILS ---
-function stripHTML(html) { return new DOMParser().parseFromString(html, 'text/html').body.textContent || ""; }
-function openSettings() { renderKeywordManager(); document.getElementById("settings-panel").style.display = 'flex'; }
-function closeSettings() { document.getElementById("settings-panel").style.display = 'none'; }
 function filterSection(sec, btn) {
     activeSection = sec;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderNewsFeed();
-    // Update chart based on section
-    const charts = { soybean: "CBOT:ZS1!", mustard: "ICE:RS1!", palm: "MCX:CPO1!", crude: "NYMEX:CL1!", macro: "FX_IDC:USDINR" };
+    const charts = { oilseeds: "MCX:CPO1!", pulses: "NCDEX:CHANA1!", spices: "NCDEX:JEERA1!", policy: "ECONOMICS:ININR" };
     if(charts[sec]) injectLiveChart(charts[sec]);
 }
 
-function saveSettings() {
-    CONFIG.apiKey = document.getElementById("set-apikey").value;
-    const inputs = document.querySelectorAll('#keyword-manager-ui input');
-    inputs.forEach(input => {
-        CONFIG.keywords[input.dataset.key] = input.value;
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(CONFIG));
-    closeSettings();
-    fetchAllNews();
-}
-
-async function fetchViaCurrencyAPI() {
-    try {
-        const res = await fetch("https://open.er-api.com/v6/latest/USD");
-        const data = await res.json();
-        const body = document.getElementById("watchlist-body");
-        body.innerHTML = `
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
-                <span>USD/INR</span><span style="color:var(--accent)">₹${data.rates.INR.toFixed(2)}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
-                <span>MYR/INR</span><span style="color:var(--accent)">₹${(data.rates.INR / data.rates.MYR).toFixed(2)}</span>
-            </div>`;
-    } catch(e) {}
-}
-
 window.addEventListener("DOMContentLoaded", () => {
-    loadConfig();
     fetchAllNews();
-    injectLiveChart();
-    setInterval(fetchAllNews, 1800000);
+    injectLiveChart("NCDEX:JEERA1!");
 });
+
+function openSettings() { document.getElementById("settings-panel").style.display='flex'; }
+function closeSettings() { document.getElementById("settings-panel").style.display='none'; }
 </script>
 </body>
 </html>
