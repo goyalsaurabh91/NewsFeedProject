@@ -8,12 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Martel:wght@700&family=JetBrains+Mono&display=swap" rel="stylesheet"/>
   <style>
     :root {
-      /* Indian Agri-Tech Palette: Deep Forest Green & Saffron Accents */
       --bg: #061109; 
       --surface: #0f1f13; 
       --surface-light: #1b2e20;
-      --accent: #f97316; /* Saffron/Orange for Alerts */
-      --primary: #22c55e; /* Vibrant Green for Growth */
+      --accent: #f97316; 
+      --primary: #22c55e; 
+      --alert: #ef4444; /* Red for Major Global Events */
       --text-main: #f0fdf4;
       --text-dim: #86a08c;
       --border: rgba(34, 197, 94, 0.15);
@@ -35,29 +35,25 @@
     #logo h1 { font-family: var(--font-hindi); font-size: 1.6rem; color: var(--primary); }
     .sub-logo { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 1px; }
 
-    /* Market Ticker with Indian Context */
     #ticker-bar { 
-        background: #000; 
-        padding: 10px 25px; 
-        font-size: 0.8rem; 
-        border-bottom: 1px solid var(--border);
-        color: var(--primary);
+        background: #000; padding: 10px 25px; font-size: 0.8rem; 
+        border-bottom: 1px solid var(--border); color: var(--primary);
         display: flex; justify-content: space-between;
     }
 
     #main { display: grid; grid-template-columns: 1fr 360px; gap: 20px; max-width: 1400px; margin: 20px auto; padding: 0 20px; }
 
     .news-card { 
-        background: var(--surface); 
-        border-left: 4px solid var(--primary); 
-        border-radius: 8px; 
-        padding: 20px; 
-        margin-bottom: 15px; 
-        transition: 0.3s;
+        background: var(--surface); border-left: 4px solid var(--primary); 
+        border-radius: 8px; padding: 20px; margin-bottom: 15px; transition: 0.3s; cursor: pointer;
     }
     .news-card:hover { background: var(--surface-light); border-left-color: var(--accent); }
     
-    .nc-source { font-size: 0.7rem; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+    /* Major Alert Styling */
+    .news-card.major-event { border-left: 4px solid var(--alert); background: rgba(239, 68, 68, 0.05); }
+    .news-card.major-event:hover { border-left-color: var(--alert); background: rgba(239, 68, 68, 0.1); }
+    
+    .nc-source { font-size: 0.7rem; color: var(--accent); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
     .nc-headline { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: #fff; }
 
     .ctrl-btn { 
@@ -74,6 +70,9 @@
 
     .widget { background: var(--surface); border-radius: 10px; padding: 20px; border: 1px solid var(--border); }
     
+    .live-dot { height: 8px; width: 8px; background-color: var(--alert); border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
     @media (max-width: 900px) { #main { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -83,143 +82,187 @@
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <div id="logo">
       <h1>BHARAT <span style="color:#fff">AGRI-INTEL</span></h1>
-      <div class="sub-logo">Indian Commodity Real-Time Terminal</div>
+      <div class="sub-logo">Edible Oils & Global Commodity Terminal</div>
     </div>
     <div id="header-controls">
-      <button class="ctrl-btn" onclick="openSettings()">⚙ Settings</button>
-      <button class="ctrl-btn active" id="refresh-btn" onclick="fetchAllNews(true)">⟳ Sync Mandi Nodes</button>
+      <button class="ctrl-btn active" id="refresh-btn" onclick="fetchAllNews(true)">⟳ Sync Data Nodes</button>
     </div>
   </div>
 </header>
 
 <div id="ticker-bar">
-  <span><span style="color:var(--accent)">●</span> NCDEX & MCX LIVE</span>
-  <div id="ticker-inner">Loading local market data...</div>
+  <span><span class="live-dot"></span> LIVE MARKET INTEL</span>
+  <div id="ticker-inner">Fetching real-time updates...</div>
 </div>
 
 <main id="main">
   <nav id="tab-bar" style="grid-column: 1/-1; margin-bottom: 10px; overflow-x:auto; white-space:nowrap;">
     <button class="tab-btn active" onclick="filterSection('all', this)">All News</button>
-    <button class="tab-btn" onclick="filterSection('oilseeds', this)">Mustard/Soybean</button>
-    <button class="tab-btn" onclick="filterSection('spices', this)">Jeera/Turmeric</button>
-    <button class="tab-btn" onclick="filterSection('pulses', this)">Pulses/Chana</button>
-    <button class="tab-btn" onclick="filterSection('policy', this)">Govt Policy/FCI</button>
+    <button class="tab-btn" onclick="filterSection('soybean', this)">Soybean</button>
+    <button class="tab-btn" onclick="filterSection('mustard', this)">Mustard/Rapeseed</button>
+    <button class="tab-btn" onclick="filterSection('palm', this)">Palm Oil</button>
+    <button class="tab-btn" onclick="filterSection('macro', this)">Global & Policy</button>
   </nav>
 
   <section id="feed-col">
-    <div id="news-feed"></div>
+    <div id="news-feed">
+        <div style="padding: 40px; text-align: center; color: var(--text-dim);">Connecting to global feeds...</div>
+    </div>
   </section>
 
   <aside id="sidebar">
     <div class="widget">
-      <h3 style="font-size:0.8rem; margin-bottom:15px; color:var(--text-dim)">LOCAL WATCHLIST (INR)</h3>
-      <div id="watchlist-body"></div>
-      <div id="tv-chart-container" style="height:300px; margin-top:20px; border-radius:8px; overflow:hidden;"></div>
+      <h3 style="font-size:0.8rem; margin-bottom:15px; color:var(--text-dim); display:flex; justify-content:space-between;">
+          <span>LIVE FOREX & MACRO</span> <span class="live-dot" style="background-color: var(--primary)"></span>
+      </h3>
+      <div id="watchlist-body">
+          <div style="color:var(--text-dim); font-size:0.8rem;">Fetching exchange rates...</div>
+      </div>
+      <div id="tv-chart-container" style="height:350px; margin-top:20px; border-radius:8px; overflow:hidden;"></div>
     </div>
   </aside>
 </main>
 
-<div id="settings-panel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-    <div style="background:var(--surface); padding:30px; border-radius:12px; width:90%; max-width:500px; border:1px solid var(--primary);">
-        <h2 style="margin-bottom:20px; color:var(--primary)">Terminal Config</h2>
-        <div id="keyword-manager-ui"></div>
-        <button class="ctrl-btn active" onclick="saveSettings()" style="width:100%; margin-top:20px">Save Changes</button>
-        <button class="ctrl-btn" onclick="closeSettings()" style="width:100%; margin-top:10px">Close</button>
-    </div>
-</div>
-
 <script>
-const STORAGE_KEY = 'BHARAT_AGRI_CONFIG';
 let allArticles = [];
 let activeSection = 'all';
 
-let CONFIG = {
+// Focus areas defined strictly to prevent "null" tab feeds
+const CONFIG = {
     keywords: {
-        oilseeds: 'mustard, sarson, soybean, palm oil, refined oil',
-        spices: 'jeera, turmeric, dhaniya, coriander, spices',
-        pulses: 'chana, tur, moong, pulses, gram',
-        policy: 'fci, msp, government, subsidy, export ban, import duty'
+        soybean: ['soy', 'soya', 'soybean', 'meal', 'cbot'],
+        mustard: ['mustard', 'sarson', 'rapeseed', 'canola'],
+        palm: ['palm', 'cpo', 'bmd', 'malaysia', 'indonesia', 'olein'],
+        macro: ['fci', 'msp', 'government', 'subsidy', 'duty', 'fed', 'rbi', 'inflation']
     }
 };
 
-// Indian-centric News Sources
+// Global Disruption Keywords
+const MAJOR_WORDS = ['war', 'strike', 'disrupt', 'ban', 'tariff', 'supply chain', 'crisis', 'crash', 'surge', 'geopolitical', 'conflict'];
+
+// Balanced Indian & Global Sources
 const FEED_SOURCES = [
+    { name: "Reuters Agri", tag: "REUTERS", url: "https://www.reutersagency.com/feed/?best-sectors=agriculture&post_type=best" },
     { name: "Economic Times Agri", tag: "ET AGRI", url: "https://economictimes.indiatimes.com/news/economy/agriculture/rssfeeds/12020999.cms" },
-    { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" },
     { name: "Business Standard", tag: "BS", url: "https://www.business-standard.com/rss/markets-106.rss" },
     { name: "Financial Express", tag: "FE", url: "https://www.financialexpress.com/market/commodities/feed/" },
-    { name: "Reuters Agri", tag: "REUTERS", url: "https://www.reutersagency.com/feed/?best-sectors=agriculture&post_type=best" },
     { name: "USDA Global", tag: "USDA", url: "https://www.usda.gov/rss/home.xml" },
-    { name: "Financial Times Agri", tag: "FT", url: "https://www.ft.com/agriculture?format=rss" }
+    { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" }
 ];
 
 async function fetchAllNews() {
-    document.getElementById("refresh-btn").textContent = "Syncing...";
+    const btn = document.getElementById("refresh-btn");
+    btn.textContent = "⌛ Syncing...";
     allArticles = [];
 
     const tasks = FEED_SOURCES.map(async (src) => {
         try {
             const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=ogzjzg9nnzk9e5a1fvcc2nllyjy3wui7s7aeffvh`);
             const data = await res.json();
-            data.items.forEach(item => {
-                allArticles.push({
-                    headline: item.title,
-                    summary: item.description.replace(/<[^>]*>/g, '').substring(0, 180),
-                    source: src.tag,
-                    link: item.link,
-                    section: detectSection(item.title.toLowerCase()),
-                    timestamp: new Date(item.pubDate).getTime()
+            
+            if (data.items) {
+                data.items.forEach(item => {
+                    const fullText = (item.title + " " + item.description).toLowerCase();
+                    
+                    // Robust Date Parsing
+                    let parsedDate = Date.parse(item.pubDate);
+                    if (isNaN(parsedDate)) parsedDate = Date.now(); 
+
+                    allArticles.push({
+                        id: item.link,
+                        headline: item.title,
+                        summary: item.description.replace(/<[^>]*>/g, '').substring(0, 180),
+                        source: src.tag,
+                        link: item.link,
+                        section: detectSection(fullText),
+                        isMajor: detectMajorEvent(fullText),
+                        timestamp: parsedDate
+                    });
                 });
-            });
-        } catch (e) {}
+            }
+        } catch (e) { console.warn(`Feed failed: ${src.name}`); }
     });
 
-    await Promise.all(tasks);
+    // Run RSS fetch and Live Forex fetch simultaneously
+    await Promise.allSettled([...tasks, updateWatchlist()]);
+    
+    // Remove duplicates based on link and sort by newest
+    allArticles = allArticles.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
     allArticles.sort((a,b) => b.timestamp - a.timestamp);
+    
     renderNewsFeed();
-    updateWatchlist();
-    document.getElementById("refresh-btn").textContent = "⟳ Sync Mandi Nodes";
+    
+    if (allArticles.length > 0) {
+        document.getElementById("ticker-inner").textContent = `LATEST: ${allArticles[0].headline}`;
+    }
+    
+    btn.textContent = "⟳ Sync Data Nodes";
 }
 
 function detectSection(text) {
     for (const [sec, kws] of Object.entries(CONFIG.keywords)) {
-        if (kws.split(',').some(k => text.includes(k.trim()))) return sec;
+        if (kws.some(k => text.includes(k))) return sec;
     }
-    return "pulses";
+    return "macro"; // Default fallback ensures no articles are lost
+}
+
+function detectMajorEvent(text) {
+    return MAJOR_WORDS.some(w => text.includes(w));
 }
 
 function renderNewsFeed() {
     const feed = document.getElementById("news-feed");
     const filtered = activeSection === 'all' ? allArticles : allArticles.filter(a => a.section === activeSection);
+    
+    if (filtered.length === 0) {
+        feed.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-dim)">No recent updates found for this category.</div>`;
+        return;
+    }
+
     feed.innerHTML = filtered.map(a => `
-        <div class="news-card" onclick="window.open('${a.link}')">
-            <div class="nc-source">${a.source} • ${new Date(a.timestamp).toLocaleTimeString()}</div>
+        <div class="news-card ${a.isMajor ? 'major-event' : ''}" onclick="window.open('${a.link}')">
+            <div class="nc-source">
+                ${a.isMajor ? '🚨 CRITICAL ALERT • ' : ''} ${a.source} • ${new Date(a.timestamp).toLocaleString()}
+            </div>
             <div class="nc-headline">${a.headline}</div>
             <p style="font-size:0.85rem; color:var(--text-dim)">${a.summary}...</p>
         </div>
     `).join("");
 }
 
-function updateWatchlist() {
-    // Simulated Indian Market Data (usually requires a paid API for real-time NCDEX)
-    const items = [
-        { name: "Mustard (NCDEX)", price: "5,450", change: "+1.2%" },
-        { name: "Jeera (NCDEX)", price: "24,800", change: "-0.8%" },
-        { name: "Soybean (CBOT/IND)", price: "4,620", change: "+0.5%" },
-        { name: "USD/INR", price: "83.42", change: "0.0%" }
-    ];
-    document.getElementById("watchlist-body").innerHTML = items.map(i => `
-        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border)">
-            <span>${i.name}</span>
-            <span style="color: ${i.change.includes('+') ? 'var(--primary)' : 'var(--accent)'}">${i.price} (${i.change})</span>
-        </div>
-    `).join("");
+// Live Forex Fetcher (Replaces Static Watchlist)
+async function updateWatchlist() {
+    const body = document.getElementById("watchlist-body");
+    try {
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        const data = await res.json();
+        
+        const inr = data.rates.INR.toFixed(2);
+        const myr = data.rates.MYR.toFixed(2);
+        const myrInr = (data.rates.INR / data.rates.MYR).toFixed(2); // Ringgit to Rupee (vital for Palm Oil)
+        const eurInr = (data.rates.INR / data.rates.EUR).toFixed(2); 
+
+        body.innerHTML = `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border)">
+                <span>USD / INR</span><span style="color: var(--primary); font-family:var(--font-mono)">₹ ${inr}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border)">
+                <span>MYR / INR (Palm Peg)</span><span style="color: var(--primary); font-family:var(--font-mono)">₹ ${myrInr}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border)">
+                <span>EUR / INR (Sun Peg)</span><span style="color: var(--primary); font-family:var(--font-mono)">₹ ${eurInr}</span>
+            </div>
+        `;
+    } catch(e) {
+        body.innerHTML = `<div style="color:var(--alert)">Failed to load FX data.</div>`;
+    }
 }
 
-function injectLiveChart(symbol = "MCX:CRUDEOIL1!") {
+function injectLiveChart(symbol = "CBOT:ZS1!") {
     document.getElementById('tv-chart-container').innerHTML = `<div id="tv-widget"></div>`;
     new TradingView.widget({
-        "autosize": true, "symbol": symbol, "interval": "D", "theme": "dark", "container_id": "tv-widget"
+        "autosize": true, "symbol": symbol, "interval": "D", "theme": "dark", "container_id": "tv-widget",
+        "style": "1", "hide_top_toolbar": true
     });
 }
 
@@ -228,17 +271,25 @@ function filterSection(sec, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderNewsFeed();
-    const charts = { oilseeds: "MCX:CPO1!", pulses: "NCDEX:CHANA1!", spices: "NCDEX:JEERA1!", policy: "ECONOMICS:ININR" };
+    
+    // Context-Aware Charting
+    const charts = { 
+        soybean: "CBOT:ZS1!", 
+        mustard: "ICE:RS1!", 
+        palm: "MCX:CPO1!", 
+        macro: "FX_IDC:USDINR",
+        all: "CBOT:ZL1!" // Soybean Oil default
+    };
     if(charts[sec]) injectLiveChart(charts[sec]);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
     fetchAllNews();
-    injectLiveChart("NCDEX:JEERA1!");
+    injectLiveChart("CBOT:ZS1!"); // Init with Soybean
+    
+    // Auto sync every 15 minutes
+    setInterval(() => fetchAllNews(false), 15 * 60 * 1000);
 });
-
-function openSettings() { document.getElementById("settings-panel").style.display='flex'; }
-function closeSettings() { document.getElementById("settings-panel").style.display='none'; }
 </script>
 </body>
 </html>
