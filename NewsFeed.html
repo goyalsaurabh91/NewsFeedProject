@@ -405,7 +405,7 @@ async function fetchAllNews(manual) {
   const feedTasks = FEED_SOURCES.map(async (source) => {
     try {
       // Primary Proxy: rss2json
-      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source.url)}&api_key=oyebv9p8v6n7x8x9ax0a5b6c7d8e9f0`; // Generic free key
+      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source.url)}&api_key=ogzjzg9nnzk9e5a1fvcc2nllyjy3wui7s7aeffvh`; // Saurabh API key
       const res = await fetchWithTimeout(proxyUrl, 8000);
       const data = await res.json();
       
