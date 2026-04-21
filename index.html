@@ -129,20 +129,18 @@
 let allArticles = [];
 let activeSection = 'all';
 
-// Focus areas defined strictly to prevent "null" tab feeds
+// Expanded keywords to ensure more articles get captured
 const CONFIG = {
     keywords: {
         soybean: ['soy', 'soya', 'soybean', 'meal', 'cbot'],
-        mustard: ['mustard', 'sarson', 'rapeseed', 'canola'],
-        palm: ['palm', 'cpo', 'bmd', 'malaysia', 'indonesia', 'olein'],
-        macro: ['fci', 'msp', 'government', 'subsidy', 'duty', 'fed', 'rbi', 'inflation']
+        mustard: ['mustard', 'sarson', 'rapeseed', 'canola', 'seed'],
+        palm: ['palm', 'cpo', 'bmd', 'malaysia', 'indonesia', 'olein', 'edible oil'],
+        macro: ['fci', 'msp', 'government', 'subsidy', 'duty', 'fed', 'rbi', 'inflation', 'economy']
     }
 };
 
-// Global Disruption Keywords
 const MAJOR_WORDS = ['war', 'strike', 'disrupt', 'ban', 'tariff', 'supply chain', 'crisis', 'crash', 'surge', 'geopolitical', 'conflict'];
 
-// Balanced Indian & Global Sources
 const FEED_SOURCES = [
     { name: "Reuters Agri", tag: "REUTERS", url: "https://www.reutersagency.com/feed/?best-sectors=agriculture&post_type=best" },
     { name: "Economic Times Agri", tag: "ET AGRI", url: "https://economictimes.indiatimes.com/news/economy/agriculture/rssfeeds/12020999.cms" },
@@ -154,26 +152,32 @@ const FEED_SOURCES = [
 
 async function fetchAllNews() {
     const btn = document.getElementById("refresh-btn");
+    const feed = document.getElementById("news-feed");
+    
     btn.textContent = "⌛ Syncing...";
+    feed.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-dim)">Fetching data from nodes...</div>`;
     allArticles = [];
+    
+    let successfulFeeds = 0;
 
     const tasks = FEED_SOURCES.map(async (src) => {
         try {
-            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=ogzjzg9nnzk9e5a1fvcc2nllyjy3wui7s7aeffvh`);
+            // Removed the rate-limited API key to use standard free tier
+            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}`);
             const data = await res.json();
             
-            if (data.items) {
+            if (data.status === 'ok' && data.items) {
+                successfulFeeds++;
                 data.items.forEach(item => {
-                    const fullText = (item.title + " " + item.description).toLowerCase();
+                    const fullText = (item.title + " " + (item.description || "")).toLowerCase();
                     
-                    // Robust Date Parsing
                     let parsedDate = Date.parse(item.pubDate);
                     if (isNaN(parsedDate)) parsedDate = Date.now(); 
 
                     allArticles.push({
-                        id: item.link,
+                        id: item.link || Math.random().toString(),
                         headline: item.title,
-                        summary: item.description.replace(/<[^>]*>/g, '').substring(0, 180),
+                        summary: (item.description || "").replace(/<[^>]*>/g, '').substring(0, 180),
                         source: src.tag,
                         link: item.link,
                         section: detectSection(fullText),
@@ -181,14 +185,30 @@ async function fetchAllNews() {
                         timestamp: parsedDate
                     });
                 });
+            } else {
+                console.warn(`Proxy rejected ${src.tag}:`, data.message);
             }
-        } catch (e) { console.warn(`Feed failed: ${src.name}`); }
+        } catch (e) { 
+            console.warn(`Network fail for: ${src.name}. Check ad-blocker.`); 
+        }
     });
 
-    // Run RSS fetch and Live Forex fetch simultaneously
     await Promise.allSettled([...tasks, updateWatchlist()]);
     
-    // Remove duplicates based on link and sort by newest
+    // Check if everything failed
+    if (successfulFeeds === 0) {
+        feed.innerHTML = `
+            <div style="padding:40px; text-align:center; color:var(--alert); border: 1px solid var(--alert); border-radius: 8px; margin-top: 20px;">
+                <b>🚨 DATA FETCH FAILED</b><br><br>
+                The RSS Proxy is currently blocking the feeds.<br>
+                1. Ensure your browser Ad-Blocker or Brave Shields are disabled for this page.<br>
+                2. The proxy API might be temporarily rate-limiting public requests. Try again in 10 minutes.
+            </div>`;
+        document.getElementById("ticker-inner").textContent = "DATA SYNC FAILED — CHECK CONSOLE";
+        btn.textContent = "⟳ Sync Data Nodes";
+        return;
+    }
+
     allArticles = allArticles.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
     allArticles.sort((a,b) => b.timestamp - a.timestamp);
     
@@ -205,7 +225,7 @@ function detectSection(text) {
     for (const [sec, kws] of Object.entries(CONFIG.keywords)) {
         if (kws.some(k => text.includes(k))) return sec;
     }
-    return "macro"; // Default fallback ensures no articles are lost
+    return "macro";
 }
 
 function detectMajorEvent(text) {
@@ -217,7 +237,7 @@ function renderNewsFeed() {
     const filtered = activeSection === 'all' ? allArticles : allArticles.filter(a => a.section === activeSection);
     
     if (filtered.length === 0) {
-        feed.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-dim)">No recent updates found for this category.</div>`;
+        feed.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-dim)">No recent updates found specifically for this category today. Try viewing 'All News'.</div>`;
         return;
     }
 
@@ -232,7 +252,6 @@ function renderNewsFeed() {
     `).join("");
 }
 
-// Live Forex Fetcher (Replaces Static Watchlist)
 async function updateWatchlist() {
     const body = document.getElementById("watchlist-body");
     try {
@@ -240,8 +259,7 @@ async function updateWatchlist() {
         const data = await res.json();
         
         const inr = data.rates.INR.toFixed(2);
-        const myr = data.rates.MYR.toFixed(2);
-        const myrInr = (data.rates.INR / data.rates.MYR).toFixed(2); // Ringgit to Rupee (vital for Palm Oil)
+        const myrInr = (data.rates.INR / data.rates.MYR).toFixed(2); 
         const eurInr = (data.rates.INR / data.rates.EUR).toFixed(2); 
 
         body.innerHTML = `
@@ -274,23 +292,20 @@ function filterSection(sec, btn) {
     btn.classList.add('active');
     renderNewsFeed();
     
-    // Context-Aware Charting
     const charts = { 
         soybean: "CBOT:ZS1!", 
         mustard: "ICE:RS1!", 
         palm: "MCX:CPO1!", 
         macro: "FX_IDC:USDINR",
-        all: "CBOT:ZL1!" // Soybean Oil default
+        all: "CBOT:ZL1!"
     };
     if(charts[sec]) injectLiveChart(charts[sec]);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
     fetchAllNews();
-    injectLiveChart("CBOT:ZS1!"); // Init with Soybean
-    
-    // Auto sync every 15 minutes
-    setInterval(() => fetchAllNews(false), 15 * 60 * 1000);
+    injectLiveChart("CBOT:ZS1!"); 
+    setInterval(() => fetchAllNews(), 15 * 60 * 1000);
 });
 </script>
 </body>
