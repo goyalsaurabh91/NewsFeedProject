@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BHARAT AGRI-INTEL — Mandi News Terminal</title>
+  <title>BHARAT AGRI-INTEL — News Terminal</title>
   <script src="https://s3.tradingview.com/tv.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Martel:wght@700&family=JetBrains+Mono&display=swap" rel="stylesheet"/>
   <style>
@@ -133,26 +133,31 @@ let activeSection = 'all';
 
 const CONFIG = {
     keywords: {
-        soybean: ['soy', 'soya', 'soybean', 'meal', 'cbot'],
-        mustard: ['mustard', 'sarson', 'rapeseed', 'canola', 'seed'],
-        palm: ['palm', 'cpo', 'bmd', 'malaysia', 'indonesia', 'olein', 'edible oil'],
-        macro: ['fci', 'msp', 'government', 'subsidy', 'duty', 'fed', 'rbi', 'inflation', 'economy']
+        soybean: ['soybean seed', 'soya oil', 'DOC', 'soya meal', 'crushing', 'solvent extraction', 'CBOT soy'],
+        mustard: ['mustard seed', 'sarson', 'rapeseed', 'mustard oil', 'expeller', 'NCDEX mustard'],
+        palm: ['CPO', 'palm olein', 'MPOC', 'MPOB', 'malaysian palm oil', 'levy', 'duty'],
+        macro: ['import duty', 'edible oil policy', 'SEA India', 'solvent extractors association', 'mandate', 'blending']
     },
-    // Retrieve key from browser memory instead of hardcoding
+    // STRICT FILTER: Any article containing these words will be deleted immediately
+    BLACKLIST: [
+        'sensex', 'nifty', 'stock price', 'ipo', 'share price', 'personal finance', 
+        'mutual fund', 'investment tips', 'multibagger', 'quarterly results', 
+        'profit drops', 'sensex falls', 'cryptocurrency', 'bitcoin'
+    ],
     get newsDataKey() { return localStorage.getItem('NEWSDATA_API_KEY') || ''; }
 };
-
 
 const MAJOR_WORDS = ['war', 'strike', 'disrupt', 'ban', 'tariff', 'supply chain', 'crisis', 'crash', 'surge', 'geopolitical', 'conflict'];
 
 const FEED_SOURCES = [
-    { name: "Reuters Agri", tag: "REUTERS", url: "https://www.reutersagency.com/feed/?best-sectors=agriculture&post_type=best" },
-    { name: "Economic Times Agri", tag: "ET AGRI", url: "https://economictimes.indiatimes.com/news/economy/agriculture/rssfeeds/12020999.cms" },
-    { name: "Business Standard", tag: "BS", url: "https://www.business-standard.com/rss/markets-106.rss" },
-    { name: "Financial Express", tag: "FE", url: "https://www.financialexpress.com/market/commodities/feed/" },
- { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" },
-    { name: "USDA Global", tag: "USDA", url: "https://www.usda.gov/rss/home.xml" }
+    { name: "SEA India Stats", tag: "SEA", url: "https://seaofindia.com/category/statistical-update/feed/" },
+    { name: "SEA News", tag: "SEA", url: "https://seaofindia.com/category/news-media/news-updates/feed/" },
+    { name: "USDA Oilseeds", tag: "USDA", url: "https://www.fas.usda.gov/data/oilseeds-world-markets-and-trade/rss.xml" },
+    { name: "MPOC Malaysia", tag: "MPOC", url: "https://mpoc.org.my/feed/" },
+   { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" }
+
 ];
+
 
 /**
  * 1. CORS PROXY + LOCAL XML PARSER (UNLIMITED)
@@ -195,56 +200,71 @@ async function fetchViaCORS(src) {
 /**
  * NEWSDATA.IO INTEGRATION WITH DEDUPLICATION
  */
+
 async function fetchNewsData() {
     const apiKey = CONFIG.newsDataKey;
-    if (!apiKey) {
-        console.warn("NewsData API Key missing. Set it in terminal settings.");
-        return;
-    }
-    
-    // 1. We add 'removeduplicate=1' to save credits at the source
-    // 2. We use 'country=in' to keep it relevant to Kota/Indian markets
-    const queries = ["soybean oil India", "mustard seed prices", "palm oil MPOB"];
-    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(queries.join(" OR "))}&country=in&language=en&removeduplicate=1`;
+    if (!apiKey) return;
+
+    // Targeted industrial search queries
+    const industrialQueries = [
+        '"soybean seed" India',
+        '"mustard seed" mandi',
+        '"solvent extraction" India',
+        '"edible oil" import duty',
+        'SEA India "oilmeals"',
+        '"Crude Palm Oil" price'
+    ];
+
+    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(industrialQueries.join(" OR "))}&country=in&language=en&category=business,food,top&removeduplicate=1`;
 
     try {
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.results) {
-            // Get already stored IDs to prevent re-fetching/re-displaying
             let storedArticles = JSON.parse(localStorage.getItem('terminal_db') || '[]');
             const existingIds = new Set(storedArticles.map(a => a.id));
 
             data.results.forEach(item => {
-                if (!existingIds.has(item.article_id)) {
-                    const fullText = (item.title + " " + (item.description || "")).toLowerCase();
-                    const newArticle = {
-                        id: item.article_id,
-                        headline: item.title,
-                        summary: (item.description || "").substring(0, 180),
-                        source: item.source_id.toUpperCase(),
-                        link: item.link,
-                        section: detectSection(fullText),
-                        isMajor: detectMajorEvent(fullText),
-                        timestamp: Date.parse(item.pubDate) || Date.now()
-                    };
-                    allArticles.push(newArticle);
-                    storedArticles.push(newArticle);
-                }
+                const title = item.title.toLowerCase();
+                const desc = (item.description || "").toLowerCase();
+
+                // DYNAMIC FILTERING
+                // 1. Skip if ID exists
+                if (existingIds.has(item.article_id)) return;
+                
+                // 2. Skip if it hits the Blacklist (Sensex, IPO, etc.)
+                if (CONFIG.BLACKLIST.some(word => title.includes(word) || desc.includes(word))) return;
+
+                // 3. Skip if it doesn't mention core commodities (Final Safeguard)
+                const isRelevant = [...CONFIG.keywords.soybean, ...CONFIG.keywords.mustard, ...CONFIG.keywords.palm]
+                                    .some(k => title.includes(k) || desc.includes(k));
+                if (!isRelevant) return;
+
+                const newArticle = {
+                    id: item.article_id,
+                    headline: item.title,
+                    summary: (item.description || "").substring(0, 180),
+                    source: item.source_id.toUpperCase(),
+                    link: item.link,
+                    section: detectSection(title + " " + desc),
+                    isMajor: detectMajorEvent(title + " " + desc),
+                    timestamp: Date.parse(item.pubDate) || Date.now()
+                };
+                allArticles.push(newArticle);
+                storedArticles.push(newArticle);
             });
 
-            // Keep only latest 200 articles in phone memory to stay fast
+            // Keep memory lean
             if (storedArticles.length > 200) {
                 storedArticles.sort((a,b) => b.timestamp - a.timestamp);
                 storedArticles = storedArticles.slice(0, 200);
             }
             localStorage.setItem('terminal_db', JSON.stringify(storedArticles));
         }
-    } catch (e) {
-        console.warn("NewsData.io fetch failed", e);
-    }
+    } catch (e) { console.warn("NewsData failed", e); }
 }
+
 
 /**
  * SIMPLE KEY MANAGER (Run this once in your browser console to set your key)
