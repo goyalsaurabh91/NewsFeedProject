@@ -88,6 +88,7 @@
     </div>
     <div id="header-controls">
       <button class="ctrl-btn active" id="refresh-btn" onclick="fetchAllNews(true)">⟳ Sync Data Nodes</button>
+      <button class="ctrl-btn" onclick="setApiKey()" style="border-color:var(--text-dim)">⚙ Key</button>
     </div>
   </div>
 </header>
@@ -126,18 +127,21 @@
 </main>
 
 <script>
+
 let allArticles = [];
 let activeSection = 'all';
 
-// Expanded keywords to ensure more articles get captured
 const CONFIG = {
     keywords: {
         soybean: ['soy', 'soya', 'soybean', 'meal', 'cbot'],
         mustard: ['mustard', 'sarson', 'rapeseed', 'canola', 'seed'],
         palm: ['palm', 'cpo', 'bmd', 'malaysia', 'indonesia', 'olein', 'edible oil'],
         macro: ['fci', 'msp', 'government', 'subsidy', 'duty', 'fed', 'rbi', 'inflation', 'economy']
-    }
+    },
+    // Retrieve key from browser memory instead of hardcoding
+    get newsDataKey() { return localStorage.getItem('NEWSDATA_API_KEY') || ''; }
 };
+
 
 const MAJOR_WORDS = ['war', 'strike', 'disrupt', 'ban', 'tariff', 'supply chain', 'crisis', 'crash', 'surge', 'geopolitical', 'conflict'];
 
@@ -146,70 +150,128 @@ const FEED_SOURCES = [
     { name: "Economic Times Agri", tag: "ET AGRI", url: "https://economictimes.indiatimes.com/news/economy/agriculture/rssfeeds/12020999.cms" },
     { name: "Business Standard", tag: "BS", url: "https://www.business-standard.com/rss/markets-106.rss" },
     { name: "Financial Express", tag: "FE", url: "https://www.financialexpress.com/market/commodities/feed/" },
-    { name: "USDA Global", tag: "USDA", url: "https://www.usda.gov/rss/home.xml" },
-    { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" }
+ { name: "Krishi Jagran", tag: "KRISHI", url: "https://krishijagran.com/rss-feeds/" },
+    { name: "USDA Global", tag: "USDA", url: "https://www.usda.gov/rss/home.xml" }
 ];
+
+/**
+ * 1. CORS PROXY + LOCAL XML PARSER (UNLIMITED)
+ * Replaces RSS2JSON to handle high volumes without cost.
+ */
+async function fetchViaCORS(src) {
+    const proxy = "https://corsproxy.io/?"; 
+    try {
+        const response = await fetch(proxy + encodeURIComponent(src.url));
+        const xmlText = await response.text();
+        
+        // Native browser XML parser (No libraries needed)
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        const items = xmlDoc.querySelectorAll("item");
+
+        items.forEach(item => {
+            const title = item.querySelector("title")?.textContent || "";
+            const desc = item.querySelector("description")?.textContent || "";
+            const link = item.querySelector("link")?.textContent || "";
+            const pubDate = item.querySelector("pubDate")?.textContent || "";
+            const fullText = (title + " " + desc).toLowerCase();
+
+            allArticles.push({
+                id: link || Math.random().toString(),
+                headline: title,
+                summary: desc.replace(/<[^>]*>/g, '').substring(0, 180),
+                source: src.tag,
+                link: link,
+                section: detectSection(fullText),
+                isMajor: detectMajorEvent(fullText),
+                timestamp: Date.parse(pubDate) || Date.now()
+            });
+        });
+    } catch (e) {
+        console.warn(`CORS Proxy failed for ${src.tag}`);
+    }
+}
+
+/**
+ * NEWSDATA.IO INTEGRATION WITH DEDUPLICATION
+ */
+async function fetchNewsData() {
+    const apiKey = CONFIG.newsDataKey;
+    if (!apiKey) {
+        console.warn("NewsData API Key missing. Set it in terminal settings.");
+        return;
+    }
+    
+    // 1. We add 'removeduplicate=1' to save credits at the source
+    // 2. We use 'country=in' to keep it relevant to Kota/Indian markets
+    const queries = ["soybean oil India", "mustard seed prices", "palm oil MPOB"];
+    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(queries.join(" OR "))}&country=in&language=en&removeduplicate=1`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.results) {
+            // Get already stored IDs to prevent re-fetching/re-displaying
+            let storedArticles = JSON.parse(localStorage.getItem('terminal_db') || '[]');
+            const existingIds = new Set(storedArticles.map(a => a.id));
+
+            data.results.forEach(item => {
+                if (!existingIds.has(item.article_id)) {
+                    const fullText = (item.title + " " + (item.description || "")).toLowerCase();
+                    const newArticle = {
+                        id: item.article_id,
+                        headline: item.title,
+                        summary: (item.description || "").substring(0, 180),
+                        source: item.source_id.toUpperCase(),
+                        link: item.link,
+                        section: detectSection(fullText),
+                        isMajor: detectMajorEvent(fullText),
+                        timestamp: Date.parse(item.pubDate) || Date.now()
+                    };
+                    allArticles.push(newArticle);
+                    storedArticles.push(newArticle);
+                }
+            });
+
+            // Keep only latest 200 articles in phone memory to stay fast
+            if (storedArticles.length > 200) {
+                storedArticles.sort((a,b) => b.timestamp - a.timestamp);
+                storedArticles = storedArticles.slice(0, 200);
+            }
+            localStorage.setItem('terminal_db', JSON.stringify(storedArticles));
+        }
+    } catch (e) {
+        console.warn("NewsData.io fetch failed", e);
+    }
+}
+
+/**
+ * SIMPLE KEY MANAGER (Run this once in your browser console to set your key)
+ * Or add a button in your HTML to call this.
+ */
+function setApiKey() {
+    const key = prompt("Enter your NewsData.io API Key:");
+    if (key) {
+        localStorage.setItem('NEWSDATA_API_KEY', key);
+        alert("Key saved locally! Refreshing...");
+        location.reload();
+    }
+}
 
 async function fetchAllNews() {
     const btn = document.getElementById("refresh-btn");
     const feed = document.getElementById("news-feed");
     
     btn.textContent = "⌛ Syncing...";
-    feed.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-dim)">Fetching data from nodes...</div>`;
     allArticles = [];
-    
-    let successfulFeeds = 0;
 
-    const tasks = FEED_SOURCES.map(async (src) => {
-        try {
-            // Removed the rate-limited API key to use standard free tier
-            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}`);
-            const data = await res.json();
-            
-            if (data.status === 'ok' && data.items) {
-                successfulFeeds++;
-                data.items.forEach(item => {
-                    const fullText = (item.title + " " + (item.description || "")).toLowerCase();
-                    
-                    let parsedDate = Date.parse(item.pubDate);
-                    if (isNaN(parsedDate)) parsedDate = Date.now(); 
+    // Parallel execution of all data nodes
+    const rssTasks = FEED_SOURCES.map(src => fetchViaCORS(src));
+    await Promise.allSettled([...rssTasks, fetchNewsData(), updateWatchlist()]);
 
-                    allArticles.push({
-                        id: item.link || Math.random().toString(),
-                        headline: item.title,
-                        summary: (item.description || "").replace(/<[^>]*>/g, '').substring(0, 180),
-                        source: src.tag,
-                        link: item.link,
-                        section: detectSection(fullText),
-                        isMajor: detectMajorEvent(fullText),
-                        timestamp: parsedDate
-                    });
-                });
-            } else {
-                console.warn(`Proxy rejected ${src.tag}:`, data.message);
-            }
-        } catch (e) { 
-            console.warn(`Network fail for: ${src.name}. Check ad-blocker.`); 
-        }
-    });
-
-    await Promise.allSettled([...tasks, updateWatchlist()]);
-    
-    // Check if everything failed
-    if (successfulFeeds === 0) {
-        feed.innerHTML = `
-            <div style="padding:40px; text-align:center; color:var(--alert); border: 1px solid var(--alert); border-radius: 8px; margin-top: 20px;">
-                <b>🚨 DATA FETCH FAILED</b><br><br>
-                The RSS Proxy is currently blocking the feeds.<br>
-                1. Ensure your browser Ad-Blocker or Brave Shields are disabled for this page.<br>
-                2. The proxy API might be temporarily rate-limiting public requests. Try again in 10 minutes.
-            </div>`;
-        document.getElementById("ticker-inner").textContent = "DATA SYNC FAILED — CHECK CONSOLE";
-        btn.textContent = "⟳ Sync Data Nodes";
-        return;
-    }
-
-    allArticles = allArticles.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
+    // De-duplicate and Sort
+    allArticles = allArticles.filter((v,i,a) => a.findIndex(v2 => (v2.id === v.id)) === i);
     allArticles.sort((a,b) => b.timestamp - a.timestamp);
     
     renderNewsFeed();
@@ -217,7 +279,6 @@ async function fetchAllNews() {
     if (allArticles.length > 0) {
         document.getElementById("ticker-inner").textContent = `LATEST: ${allArticles[0].headline}`;
     }
-    
     btn.textContent = "⟳ Sync Data Nodes";
 }
 
